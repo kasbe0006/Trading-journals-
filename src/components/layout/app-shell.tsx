@@ -41,9 +41,9 @@ export function AppShell({ children, authEnabled, demoMode }: AppShellProps) {
       <Sidebar />
       <main className="flex-1">
         <DbStatusBanner />
-        <header className="flex items-center justify-between border-b border-slate-800/80 bg-[linear-gradient(180deg,rgba(20,33,58,0.55),rgba(12,19,34,0.82))] px-6 py-4">
-          <p className="text-sm text-slate-400">Institutional-grade trade intelligence</p>
-          <div className="flex items-center gap-2">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 bg-[linear-gradient(180deg,rgba(20,33,58,0.55),rgba(12,19,34,0.82))] px-4 py-3 sm:px-6 sm:py-4">
+          <p className="text-xs text-slate-400 sm:text-sm">Institutional-grade trade intelligence</p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <p className="hidden text-xs text-amber-300 sm:block">{modeLabel}</p>
             <Button variant="secondary" onClick={goDashboard}>
               Dashboard
@@ -55,7 +55,7 @@ export function AppShell({ children, authEnabled, demoMode }: AppShellProps) {
             )}
           </div>
         </header>
-        <section className="bg-[radial-gradient(circle_at_20%_-5%,rgba(59,130,246,0.07),transparent_30%)] p-6">{children}</section>
+        <section className="bg-[radial-gradient(circle_at_20%_-5%,rgba(59,130,246,0.07),transparent_30%)] p-4 sm:p-6">{children}</section>
       </main>
     </div>
   );

@@ -16,11 +16,11 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-full border-b border-slate-800/80 bg-[var(--surface-1)] p-4 md:min-h-screen md:w-64 md:border-b-0 md:border-r">
+    <aside className="sticky top-0 z-30 w-full border-b border-slate-800/80 bg-[var(--surface-1)] p-4 backdrop-blur md:static md:min-h-screen md:w-64 md:border-b-0 md:border-r md:backdrop-blur-0">
       <h1 className="text-lg font-semibold tracking-wide text-slate-100">AI Trading Journal Pro</h1>
       <p className="mt-1 text-xs text-slate-400">Premium edge analytics</p>
 
-      <nav className="mt-6 grid gap-2">
+      <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 md:mt-6 md:grid md:overflow-visible md:pb-0">
         {links.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
@@ -29,7 +29,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-900/80",
+                "group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-900/80",
                 isActive && "bg-slate-900 text-white ring-1 ring-blue-500/30"
               )}
             >
