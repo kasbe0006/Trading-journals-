@@ -21,7 +21,4 @@ export const env = {
   RATE_LIMIT_MAX_REQUESTS: Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 120),
   RATE_LIMIT_AUTH_MAX_REQUESTS: Number(process.env.RATE_LIMIT_AUTH_MAX_REQUESTS ?? 20),
   RATE_LIMIT_UPLOAD_MAX_REQUESTS: Number(process.env.RATE_LIMIT_UPLOAD_MAX_REQUESTS ?? 12),
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
-  OPENAI_MODEL: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
-  OPENAI_VISION_MODEL: process.env.OPENAI_VISION_MODEL ?? "gpt-4.1-mini",
 };

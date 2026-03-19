@@ -1,14 +1,17 @@
 import mongoose from "mongoose";
 import { env } from "@/lib/env";
+import { Trade } from "@/models/Trade";
+import { User } from "@/models/User";
 
 declare global {
   var mongooseConnection: {
     conn: typeof mongoose | null;
     promise: Promise<typeof mongoose> | null;
+    indexesPromise: Promise<void> | null;
   };
 }
 
-const cached = global.mongooseConnection || { conn: null, promise: null };
+const cached = global.mongooseConnection || { conn: null, promise: null, indexesPromise: null };
 
 if (!global.mongooseConnection) {
   global.mongooseConnection = cached;
@@ -32,5 +35,19 @@ export async function connectDB() {
   }
 
   cached.conn = await cached.promise;
+
+  if (!cached.indexesPromise) {
+    cached.indexesPromise = initializeIndexes();
+  }
+
+  await cached.indexesPromise;
   return cached.conn;
+}
+
+async function initializeIndexes() {
+  try {
+    await Promise.all([User.createIndexes(), Trade.createIndexes()]);
+  } catch (error) {
+    console.error("[db] Failed to initialize MongoDB indexes", error);
+  }
 }

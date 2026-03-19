@@ -1,11 +1,8 @@
 import { NextRequest } from "next/server";
-import { AuthPayload, getAuthFromRequest } from "@/lib/auth";
+import { AuthPayload, DEMO_AUTH_PAYLOAD, getAuthFromRequest } from "@/lib/auth";
 import { env } from "@/lib/env";
 
-const GUEST_USER = {
-  userId: "guest-user",
-  email: "guest@local",
-};
+const GUEST_USER = DEMO_AUTH_PAYLOAD;
 
 type ApiAuthResult =
   | { auth: AuthPayload }

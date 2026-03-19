@@ -1,76 +1,99 @@
-# AI Trading Journal Pro
+# Trading Journal Pro
 
-Production-ready personal trading journal with analytics and performance tracking.
+Personal trading journal with analytics, dashboard insights, CSV import, and settings.
+
+## Features
+
+- Trade journal CRUD (`/journal`, `/trade/[id]`)
+- Dashboard metrics + equity chart (`/dashboard`)
+- Analytics breakdowns (`/analytics`)
+- CSV import for trades
+- Settings (risk defaults, timezone, currency)
+- Auth flow (toggleable via env)
+- Health check endpoint (`/api/health`)
 
 ## Tech Stack
 
-- Next.js (App Router, TypeScript)
-- Tailwind CSS (dark premium UI)
+- Next.js (App Router + TypeScript)
+- Tailwind CSS
 - MongoDB + Mongoose
 - JWT auth (HTTP-only cookies)
-- Recharts analytics
+- Recharts
 
-## Core Features
+## Quick Start (Beginner Friendly)
 
-- Upload TradingView screenshots and auto-extract:
-	- Entry
-	- Stop Loss
-	- Take Profit
-	- Direction (`LONG` / `SHORT`)
-	- Risk/Reward ratio
-- Trade journal CRUD (`/journal`, `/trade/[id]`)
-- Dashboard (`/dashboard`) with equity curve and key performance metrics
-- Analytics (`/analytics`) with strategy, RR, drawdown, and day breakdown
-- Settings page (`/settings`) with local preferences (risk defaults, timezone, currency)
-- CSV trade import
-- Journal search/filter/sort controls for faster review
-- Emotion tracking, plan adherence, risk tracking, replay notes
-- API health checks + DB offline banner for graceful degraded mode
-
-## Project Structure
-
-- `src/app/(app)` – authenticated pages (`dashboard`, `journal`, `trade/[id]`, `analytics`, `ai-chat`)
-- `src/app/api` – auth, trades, analytics, AI routes
-- `src/models` – `User`, `Trade`
-- `src/lib` – DB, auth, OCR, AI, analytics, storage helpers
-- `src/components` – UI, charts, dashboard, layout components
-
-## Environment Variables
-
-Copy `.env.example` to `.env.local`:
-
-```bash
-cp .env.example .env.local
-```
-
-Set at minimum:
-
-- `MONGODB_URI`
-- `JWT_SECRET`
-
-Feature flags:
-
-- `AUTH_ENABLED` (`true` to require login/signup, `false` for direct demo access)
-- `APP_DEMO_MODE` (`true` by default; used for UX messaging and guest-friendly flow)
-
-Rate limiting:
-
-- `RATE_LIMIT_ENABLED` (`true` by default)
-- `RATE_LIMIT_WINDOW_MS` (default `60000`)
-- `RATE_LIMIT_MAX_REQUESTS` (default `120`)
-- `RATE_LIMIT_AUTH_MAX_REQUESTS` (default `20`)
-- `RATE_LIMIT_UPLOAD_MAX_REQUESTS` (default `12`)
-
-## Run Locally
+1. Install dependencies:
 
 ```bash
 npm install
+```
+
+2. Create and auto-configure local env:
+
+```bash
+npm run setup
+```
+
+3. Ensure MongoDB is running, then test DB connection:
+
+```bash
+npm run db:check
+```
+
+4. Start the app:
+
+```bash
 npm run dev
 ```
 
-Open:
+5. Open in browser:
 
 - `http://localhost:3000`
+
+## Environment Variables
+
+The project uses these keys from `.env.local`:
+
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `AUTH_ENABLED`
+- `APP_DEMO_MODE`
+- `RATE_LIMIT_ENABLED`
+- `RATE_LIMIT_WINDOW_MS`
+- `RATE_LIMIT_MAX_REQUESTS`
+- `RATE_LIMIT_AUTH_MAX_REQUESTS`
+- `RATE_LIMIT_UPLOAD_MAX_REQUESTS`
+
+### Auth Mode
+
+- Demo mode (no login required): `AUTH_ENABLED=false`
+- Real auth mode (login/signup enabled): `AUTH_ENABLED=true`
+
+## Database Setup Notes
+
+If local MongoDB is not running, `npm run db:check` will fail with `ECONNREFUSED`.
+
+### Option A: Local MongoDB (Homebrew on macOS)
+
+```bash
+brew tap mongodb/brew
+brew install mongodb-community
+brew services start mongodb-community
+```
+
+### Option B: MongoDB Atlas
+
+- Create a free cluster
+- Copy your connection string to `MONGODB_URI` in `.env.local`
+
+## Useful Commands
+
+```bash
+npm run setup
+npm run db:check
+npm run dev
+npm run verify
+```
 
 ## Quality Checks
 
@@ -91,9 +114,6 @@ npm run build
 - `POST /api/trades/import-csv`
 - `GET /api/analytics/summary`
 
-## Notes
+## Storage Note
 
-- Image files are stored locally in `public/uploads`.
-- Reference folders `arthveda-main` and `journalit-main` are intentionally excluded from lint/build checks.
-- In demo mode (`AUTH_ENABLED=false`), APIs run under a guest identity (`guest-user`) for local prototyping.
-- API errors and rate-limit events are logged to server console for lightweight monitoring.
+Uploaded images are stored in `public/uploads` (local disk).

@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { AUTH_COOKIE, verifyToken } from "@/lib/auth";
+import { AUTH_COOKIE, DEMO_AUTH_PAYLOAD, verifyToken } from "@/lib/auth";
 import { env } from "@/lib/env";
 
 export async function requireUser() {
   if (!env.AUTH_ENABLED) {
-    return { userId: "guest-user", email: "guest@local" };
+    return DEMO_AUTH_PAYLOAD;
   }
 
   const cookieStore = await cookies();

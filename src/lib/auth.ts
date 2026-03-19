@@ -9,6 +9,11 @@ export type AuthPayload = {
   email: string;
 };
 
+export const DEMO_AUTH_PAYLOAD: AuthPayload = {
+  userId: "000000000000000000000001",
+  email: "guest@local",
+};
+
 export function signToken(payload: AuthPayload) {
   if (!env.JWT_SECRET) throw new Error("JWT_SECRET is not configured");
   return jwt.sign(payload, env.JWT_SECRET, { expiresIn: "14d" });

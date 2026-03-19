@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleApiError, ok } from "@/lib/api-response";
-import { getAuthFromRequest } from "@/lib/auth";
+import { DEMO_AUTH_PAYLOAD, getAuthFromRequest } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { env } from "@/lib/env";
 import { User } from "@/models/User";
@@ -8,7 +8,7 @@ import { User } from "@/models/User";
 export async function GET(req: NextRequest) {
   try {
     if (!env.AUTH_ENABLED) {
-      return ok({ user: { id: "guest-user", name: "Guest", email: "guest@local" } });
+      return ok({ user: { id: DEMO_AUTH_PAYLOAD.userId, name: "Guest", email: DEMO_AUTH_PAYLOAD.email } });
     }
 
     const auth = getAuthFromRequest(req);
