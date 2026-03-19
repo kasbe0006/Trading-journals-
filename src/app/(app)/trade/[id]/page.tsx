@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,7 +80,7 @@ export default function TradeDetailPage() {
           </CardHeader>
           <CardContent>
             {trade.imageUrl ? (
-              <Image src={trade.imageUrl} alt="Trade chart" width={900} height={520} className="h-auto w-full rounded-lg border border-slate-800" />
+              <img src={trade.imageUrl} alt="Trade chart" className="h-auto w-full rounded-lg border border-slate-800" />
             ) : (
               <p className="text-sm text-slate-400">No image attached</p>
             )}

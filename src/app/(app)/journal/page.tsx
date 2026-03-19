@@ -14,6 +14,8 @@ const getLocalDateTimeInputValue = () => {
   return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
 };
 
+const MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024;
+
 type Trade = {
   _id: string;
   symbol: string;
@@ -180,6 +182,38 @@ export default function JournalPage() {
 
   const updateEditField = (key: keyof TradeForm, value: string | boolean) => {
     setEditForm((previous) => ({ ...previous, [key]: value as never }));
+  };
+
+  const readImageAsDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Failed to read image file"));
+      reader.readAsDataURL(file);
+    });
+
+  const handleImageUpload = async (file: File, mode: "create" | "edit") => {
+    if (!file.type.startsWith("image/")) {
+      setMessage("Please select a valid image file.");
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setMessage("Image too large. Please upload an image up to 3MB.");
+      return;
+    }
+
+    try {
+      const dataUrl = await readImageAsDataUrl(file);
+      if (mode === "create") {
+        updateField("imageUrl", dataUrl);
+      } else {
+        updateEditField("imageUrl", dataUrl);
+      }
+      setMessage("Trade image attached.");
+    } catch {
+      setMessage("Failed to process selected image.");
+    }
   };
 
   const submitTrade = async (event: React.FormEvent) => {
@@ -412,6 +446,12 @@ export default function JournalPage() {
 
             <textarea className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Trade notes" value={form.notes} onChange={(event) => updateField("notes", event.target.value)} />
             <textarea className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Trade replay notes" value={form.replayNotes} onChange={(event) => updateField("replayNotes", event.target.value)} />
+            <input
+              className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm"
+              placeholder="Chart image URL (optional)"
+              value={form.imageUrl}
+              onChange={(event) => updateField("imageUrl", event.target.value)}
+            />
 
             <label className="inline-flex items-center gap-2 text-sm text-slate-300">
               <input type="checkbox" checked={form.followedPlan} onChange={(event) => updateField("followedPlan", event.target.checked)} />
@@ -428,6 +468,20 @@ export default function JournalPage() {
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (file) importCsv(file);
+                  }}
+                />
+              </label>
+
+              <label className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-900">
+                Upload Trade Image
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void handleImageUpload(file, "create");
+                    event.currentTarget.value = "";
                   }}
                 />
               </label>
@@ -483,6 +537,12 @@ export default function JournalPage() {
 
             <textarea className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Trade notes" value={editForm.notes} onChange={(event) => updateEditField("notes", event.target.value)} />
             <textarea className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Trade replay notes" value={editForm.replayNotes} onChange={(event) => updateEditField("replayNotes", event.target.value)} />
+            <input
+              className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm"
+              placeholder="Chart image URL (optional)"
+              value={editForm.imageUrl}
+              onChange={(event) => updateEditField("imageUrl", event.target.value)}
+            />
 
             <label className="inline-flex items-center gap-2 text-sm text-slate-300">
               <input type="checkbox" checked={editForm.followedPlan} onChange={(event) => updateEditField("followedPlan", event.target.checked)} />
@@ -490,9 +550,25 @@ export default function JournalPage() {
             </label>
 
             <div className="flex flex-wrap gap-3">
+              <label className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-900">
+                Upload Trade Image
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void handleImageUpload(file, "edit");
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+
               <Button onClick={saveEdit} disabled={loading}>{loading ? "Saving..." : "Update trade"}</Button>
               <Button variant="secondary" onClick={cancelEdit}>Cancel</Button>
             </div>
+
+            {editForm.imageUrl && <p className="text-xs text-emerald-400">Screenshot linked.</p>}
           </CardContent>
         </Card>
       )}

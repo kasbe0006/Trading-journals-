@@ -206,6 +206,8 @@ async function initializePg() {
     )
   `;
 
+  await sql`ALTER TABLE trades ADD COLUMN IF NOT EXISTS image_url text NOT NULL DEFAULT ''`;
+
   await sql`CREATE INDEX IF NOT EXISTS trades_user_traded_idx ON trades (user_id, traded_at DESC, created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS trades_user_strategy_idx ON trades (user_id, strategy_tag)`;
 
