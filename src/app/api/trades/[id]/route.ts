@@ -8,6 +8,7 @@ import { calculateRrRatio, calculateTradeOutcome } from "@/lib/trade-math";
 const tradeUpdateSchema = z.object({
   symbol: z.string().min(1).optional(),
   tradedAt: z.coerce.date().optional(),
+  lotSize: z.coerce.number().positive().optional(),
   entry: z.coerce.number().optional(),
   exitPrice: z.coerce.number().optional(),
   stopLoss: z.coerce.number().optional(),

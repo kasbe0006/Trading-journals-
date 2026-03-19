@@ -16,6 +16,7 @@ type TradeRow = {
   user_id: string;
   symbol: string;
   traded_at: string;
+  lot_size: number;
   entry: number;
   exit_price: number;
   stop_loss: number;
@@ -51,6 +52,7 @@ export type DbTrade = {
   userId: string;
   symbol: string;
   tradedAt: Date;
+  lotSize: number;
   entry: number;
   exitPrice: number;
   stopLoss: number;
@@ -76,6 +78,7 @@ type CreateTradeInput = {
   userId: string;
   symbol: string;
   tradedAt: Date;
+  lotSize?: number;
   entry: number;
   exitPrice: number;
   stopLoss: number;
@@ -129,6 +132,7 @@ function mapTrade(row: TradeRow): DbTrade {
     userId: row.user_id,
     symbol: row.symbol,
     tradedAt: new Date(row.traded_at),
+    lotSize: Number(row.lot_size),
     entry: Number(row.entry),
     exitPrice: Number(row.exit_price),
     stopLoss: Number(row.stop_loss),
@@ -184,6 +188,7 @@ async function initializePg() {
       user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       symbol text NOT NULL,
       traded_at timestamptz NOT NULL DEFAULT now(),
+      lot_size double precision NOT NULL DEFAULT 1,
       entry double precision NOT NULL,
       exit_price double precision NOT NULL,
       stop_loss double precision NOT NULL,
@@ -207,6 +212,7 @@ async function initializePg() {
   `;
 
   await sql`ALTER TABLE trades ADD COLUMN IF NOT EXISTS image_url text NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE trades ADD COLUMN IF NOT EXISTS lot_size double precision NOT NULL DEFAULT 1`;
 
   await sql`CREATE INDEX IF NOT EXISTS trades_user_traded_idx ON trades (user_id, traded_at DESC, created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS trades_user_strategy_idx ON trades (user_id, strategy_tag)`;
@@ -294,6 +300,7 @@ export async function createTrade(input: CreateTradeInput) {
       user_id,
       symbol,
       traded_at,
+      lot_size,
       entry,
       exit_price,
       stop_loss,
@@ -315,6 +322,7 @@ export async function createTrade(input: CreateTradeInput) {
       ${input.userId},
       ${input.symbol.trim().toUpperCase()},
       ${input.tradedAt},
+      ${input.lotSize ?? 1},
       ${input.entry},
       ${input.exitPrice},
       ${input.stopLoss},
@@ -346,6 +354,7 @@ export async function updateTrade(userId: string, tradeId: string, input: Update
     SET
       symbol = COALESCE(${input.symbol?.trim().toUpperCase() ?? null}, symbol),
       traded_at = COALESCE(${input.tradedAt ?? null}, traded_at),
+      lot_size = COALESCE(${input.lotSize ?? null}, lot_size),
       entry = COALESCE(${input.entry ?? null}, entry),
       exit_price = COALESCE(${input.exitPrice ?? null}, exit_price),
       stop_loss = COALESCE(${input.stopLoss ?? null}, stop_loss),

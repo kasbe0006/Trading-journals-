@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       const entry = Number(row.entry ?? 0);
       const stopLoss = Number(row.stopLoss ?? 0);
       const takeProfit = Number(row.takeProfit ?? 0);
+      const lotSize = Number(row.lotSize ?? row.lot ?? 1);
       const direction: "LONG" | "SHORT" = row.direction === "SHORT" ? "SHORT" : "LONG";
       const exitPrice = Number(row.exitPrice ?? row.exit ?? row.entry ?? 0);
 
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
         userId: authResult.auth.userId,
         symbol: String(row.symbol ?? row.ticker ?? "NIFTY").trim().toUpperCase(),
         tradedAt: row.tradedAt || row.date ? new Date(row.tradedAt ?? row.date ?? new Date()) : new Date(),
+        lotSize: Number.isFinite(lotSize) && lotSize > 0 ? lotSize : 1,
         entry,
         exitPrice,
         stopLoss,

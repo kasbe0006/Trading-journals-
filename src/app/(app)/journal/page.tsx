@@ -15,11 +15,13 @@ const getLocalDateTimeInputValue = () => {
 };
 
 const MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024;
+const STANDARD_LOT_UNITS = 100000;
 
 type Trade = {
   _id: string;
   symbol: string;
   tradedAt: string;
+  lotSize: number;
   entry: number;
   exitPrice: number;
   stopLoss: number;
@@ -42,6 +44,7 @@ type Trade = {
 type TradeForm = {
   symbol: string;
   tradedAt: string;
+  lotSize: string;
   entry: string;
   exitPrice: string;
   stopLoss: string;
@@ -61,6 +64,7 @@ type TradeForm = {
 const getInitialForm = (settings: UserSettings): TradeForm => ({
   symbol: "NIFTY",
   tradedAt: getLocalDateTimeInputValue(),
+  lotSize: "1",
   entry: "",
   exitPrice: "",
   stopLoss: "",
@@ -225,6 +229,7 @@ export default function JournalPage() {
       symbol: form.symbol,
       tradedAt: form.tradedAt,
       rrRatio: Number(form.rrRatio || computedRr || 0),
+        lotSize: Number(form.lotSize || 1),
       entry: Number(form.entry),
       exitPrice: Number(form.exitPrice),
       stopLoss: Number(form.stopLoss),
@@ -261,6 +266,7 @@ export default function JournalPage() {
     setEditForm({
       symbol: trade.symbol || "NIFTY",
       tradedAt: new Date(trade.tradedAt || trade.createdAt).toISOString().slice(0, 16),
+      lotSize: String(trade.lotSize ?? 1),
       entry: String(trade.entry),
       exitPrice: String(trade.exitPrice ?? trade.entry),
       stopLoss: String(trade.stopLoss),
@@ -292,6 +298,7 @@ export default function JournalPage() {
       symbol: editForm.symbol,
       tradedAt: editForm.tradedAt,
       rrRatio: Number(editForm.rrRatio || editComputedRr || 0),
+      lotSize: Number(editForm.lotSize || 1),
       entry: Number(editForm.entry),
       exitPrice: Number(editForm.exitPrice),
       stopLoss: Number(editForm.stopLoss),
@@ -350,10 +357,12 @@ export default function JournalPage() {
   };
 
   const exportFilteredTrades = () => {
-    const header = ["date", "symbol", "direction", "rrRatio", "result", "pnl", "strategyTag", "notes", "tags"];
+    const header = ["date", "symbol", "lotSize", "units", "direction", "rrRatio", "result", "pnl", "strategyTag", "notes", "tags"];
     const rows = filteredTrades.map((trade) => [
       new Date(trade.tradedAt || trade.createdAt).toISOString(),
       trade.symbol,
+      String(trade.lotSize ?? 1),
+      String(toUnits(trade.lotSize ?? 1)),
       trade.direction,
       String(trade.rrRatio),
       trade.result,
@@ -399,6 +408,8 @@ export default function JournalPage() {
     await loadTrades();
   };
 
+  const toUnits = (lotSize: number) => Math.round((Number.isFinite(lotSize) ? lotSize : 0) * STANDARD_LOT_UNITS);
+
   return (
     <div className="grid gap-6">
       <div>
@@ -415,6 +426,7 @@ export default function JournalPage() {
             <div className="grid gap-3 md:grid-cols-4">
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Symbol (e.g. NIFTY, BANKNIFTY)" value={form.symbol} onChange={(event) => updateField("symbol", event.target.value.toUpperCase())} required />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" type="datetime-local" value={form.tradedAt} onChange={(event) => updateField("tradedAt", event.target.value)} required />
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Lot Size (1 lot = 100,000 units)" value={form.lotSize} onChange={(event) => updateField("lotSize", event.target.value)} required />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Entry" value={form.entry} onChange={(event) => updateField("entry", event.target.value)} required />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Exit Price" value={form.exitPrice} onChange={(event) => updateField("exitPrice", event.target.value)} required />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Stop Loss" value={form.stopLoss} onChange={(event) => updateField("stopLoss", event.target.value)} required />
@@ -506,6 +518,7 @@ export default function JournalPage() {
             <div className="grid gap-3 md:grid-cols-4">
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Symbol (e.g. NIFTY, BANKNIFTY)" value={editForm.symbol} onChange={(event) => updateEditField("symbol", event.target.value.toUpperCase())} />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" type="datetime-local" value={editForm.tradedAt} onChange={(event) => updateEditField("tradedAt", event.target.value)} />
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Lot Size (1 lot = 100,000 units)" value={editForm.lotSize} onChange={(event) => updateEditField("lotSize", event.target.value)} />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Entry" value={editForm.entry} onChange={(event) => updateEditField("entry", event.target.value)} />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Exit Price" value={editForm.exitPrice} onChange={(event) => updateEditField("exitPrice", event.target.value)} />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Stop Loss" value={editForm.stopLoss} onChange={(event) => updateEditField("stopLoss", event.target.value)} />
@@ -638,6 +651,8 @@ export default function JournalPage() {
                   <th className="pb-2">Select</th>
                   <th className="pb-2">Date</th>
                   <th className="pb-2">Symbol</th>
+                  <th className="pb-2">Lot</th>
+                  <th className="pb-2">Units</th>
                   <th className="pb-2">Direction</th>
                   <th className="pb-2">RR</th>
                   <th className="pb-2">Result</th>
@@ -658,6 +673,8 @@ export default function JournalPage() {
                     </td>
                     <td className={settings.compactTables ? "py-1" : "py-2"}>{formatDateTime(trade.tradedAt || trade.createdAt)}</td>
                     <td className={settings.compactTables ? "py-1" : "py-2"}>{trade.symbol || "-"}</td>
+                    <td className={settings.compactTables ? "py-1" : "py-2"}>{trade.lotSize ?? 1}</td>
+                    <td className={settings.compactTables ? "py-1" : "py-2"}>{toUnits(trade.lotSize ?? 1).toLocaleString()}</td>
                     <td className={settings.compactTables ? "py-1" : "py-2"}>{trade.direction}</td>
                     <td className={settings.compactTables ? "py-1" : "py-2"}>{trade.rrRatio}</td>
                     <td className={settings.compactTables ? "py-1" : "py-2"}>{trade.result}</td>

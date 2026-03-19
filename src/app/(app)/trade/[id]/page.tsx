@@ -9,6 +9,7 @@ type Trade = {
   _id: string;
   symbol: string;
   tradedAt: string;
+  lotSize: number;
   entry: number;
   exitPrice: number;
   stopLoss: number;
@@ -32,6 +33,7 @@ type Trade = {
 export default function TradeDetailPage() {
   const params = useParams<{ id: string }>();
   const [trade, setTrade] = useState<Trade | null>(null);
+  const units = Math.round((trade?.lotSize ?? 1) * 100000);
 
   useEffect(() => {
     const load = async () => {
@@ -59,6 +61,8 @@ export default function TradeDetailPage() {
           <CardContent className="grid gap-2 text-sm">
             <p>Direction: {trade.direction}</p>
             <p>Symbol: {trade.symbol || "-"}</p>
+            <p>Lot Size: {trade.lotSize ?? 1}</p>
+            <p>Units: {units.toLocaleString()}</p>
             <p>Entry: {trade.entry}</p>
             <p>Exit Price: {trade.exitPrice}</p>
             <p>Stop Loss: {trade.stopLoss}</p>
