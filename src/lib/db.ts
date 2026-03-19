@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { neon } from "@neondatabase/serverless";
 import { env } from "@/lib/env";
+import { calculateTradeOutcome } from "@/lib/trade-math";
 
 type UserRow = {
   id: string;
@@ -127,20 +128,28 @@ function mapUser(row: UserRow): DbUser {
 }
 
 function mapTrade(row: TradeRow): DbTrade {
+  const lotSize = Number(row.lot_size);
+  const { pnl, result } = calculateTradeOutcome(
+    Number(row.entry),
+    Number(row.exit_price),
+    row.direction,
+    lotSize
+  );
+
   return {
     _id: row.id,
     userId: row.user_id,
     symbol: row.symbol,
     tradedAt: new Date(row.traded_at),
-    lotSize: Number(row.lot_size),
+    lotSize,
     entry: Number(row.entry),
     exitPrice: Number(row.exit_price),
     stopLoss: Number(row.stop_loss),
     takeProfit: Number(row.take_profit),
     direction: row.direction,
     rrRatio: Number(row.rr_ratio),
-    result: row.result,
-    pnl: Number(row.pnl),
+    result,
+    pnl,
     strategyTag: row.strategy_tag,
     notes: row.notes,
     imageUrl: row.image_url,

@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
     const rrRatio = calculateRrRatio(parsed.data.entry, parsed.data.stopLoss, parsed.data.takeProfit);
-    const { pnl, result } = calculateTradeOutcome(parsed.data.entry, parsed.data.exitPrice, parsed.data.direction);
+    const { pnl, result } = calculateTradeOutcome(parsed.data.entry, parsed.data.exitPrice, parsed.data.direction, parsed.data.lotSize);
 
     const trade = await createTrade({
       ...parsed.data,

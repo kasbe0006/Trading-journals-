@@ -60,9 +60,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const nextStopLoss = parsed.data.stopLoss ?? existingTrade.stopLoss;
     const nextTakeProfit = parsed.data.takeProfit ?? existingTrade.takeProfit;
     const nextDirection = parsed.data.direction ?? existingTrade.direction;
+    const nextLotSize = parsed.data.lotSize ?? existingTrade.lotSize ?? 1;
 
     const rrRatio = calculateRrRatio(nextEntry, nextStopLoss, nextTakeProfit);
-    const { pnl, result } = calculateTradeOutcome(nextEntry, nextExitPrice, nextDirection);
+    const { pnl, result } = calculateTradeOutcome(nextEntry, nextExitPrice, nextDirection, nextLotSize);
 
     const trade = await updateTrade(authResult.auth.userId, id, {
       ...parsed.data,

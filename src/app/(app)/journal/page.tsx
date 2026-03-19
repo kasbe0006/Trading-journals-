@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchJson } from "@/lib/client-fetch";
-import { calculateRrRatio, calculateTradeOutcome } from "@/lib/trade-math";
+import { calculateRrRatio, calculateTradeOutcome, FOREX_STANDARD_LOT_UNITS } from "@/lib/trade-math";
 import { defaultUserSettings, loadUserSettings, UserSettings } from "@/lib/user-settings";
 
 const getLocalDateTimeInputValue = () => {
@@ -15,7 +15,6 @@ const getLocalDateTimeInputValue = () => {
 };
 
 const MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024;
-const STANDARD_LOT_UNITS = 100000;
 
 type Trade = {
   _id: string;
@@ -132,9 +131,9 @@ export default function JournalPage() {
     if (!entry || !exitPrice) {
       return { result: "breakeven" as const, pnl: "0.00" };
     }
-    const { result, pnl } = calculateTradeOutcome(entry, exitPrice, form.direction);
+    const { result, pnl } = calculateTradeOutcome(entry, exitPrice, form.direction, Number(form.lotSize || 1));
     return { result, pnl: pnl.toFixed(2) };
-  }, [form.direction, form.entry, form.exitPrice]);
+  }, [form.direction, form.entry, form.exitPrice, form.lotSize]);
 
   const editComputedRr = useMemo(() => {
     const entry = Number(editForm.entry);
@@ -151,9 +150,9 @@ export default function JournalPage() {
     if (!entry || !exitPrice) {
       return { result: "breakeven" as const, pnl: "0.00" };
     }
-    const { result, pnl } = calculateTradeOutcome(entry, exitPrice, editForm.direction);
+    const { result, pnl } = calculateTradeOutcome(entry, exitPrice, editForm.direction, Number(editForm.lotSize || 1));
     return { result, pnl: pnl.toFixed(2) };
-  }, [editForm.direction, editForm.entry, editForm.exitPrice]);
+  }, [editForm.direction, editForm.entry, editForm.exitPrice, editForm.lotSize]);
 
   const filteredTrades = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -408,7 +407,7 @@ export default function JournalPage() {
     await loadTrades();
   };
 
-  const toUnits = (lotSize: number) => Math.round((Number.isFinite(lotSize) ? lotSize : 0) * STANDARD_LOT_UNITS);
+  const toUnits = (lotSize: number) => Math.round((Number.isFinite(lotSize) ? lotSize : 0) * FOREX_STANDARD_LOT_UNITS);
 
   return (
     <div className="grid gap-6">
