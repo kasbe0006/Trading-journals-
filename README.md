@@ -117,4 +117,3 @@ npm run build
 ## Storage Note
 
 Uploaded images are stored in `public/uploads` (local disk).
-# Trading-journals-
