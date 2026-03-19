@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DbStatusBanner } from "@/components/layout/db-status-banner";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -13,12 +14,26 @@ type AppShellProps = {
 
 export function AppShell({ children, authEnabled, demoMode }: AppShellProps) {
   const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const modeLabel = authEnabled ? "Auth enabled" : demoMode ? "Demo mode enabled" : "Open mode";
 
   const goDashboard = () => {
     router.push("/dashboard");
     router.refresh();
+  };
+
+  const logout = async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -33,6 +48,11 @@ export function AppShell({ children, authEnabled, demoMode }: AppShellProps) {
             <Button variant="secondary" onClick={goDashboard}>
               Dashboard
             </Button>
+            {authEnabled && (
+              <Button variant="secondary" onClick={logout} disabled={isLoggingOut}>
+                {isLoggingOut ? "Logging out..." : "Logout"}
+              </Button>
+            )}
           </div>
         </header>
         <section className="bg-[radial-gradient(circle_at_20%_-5%,rgba(59,130,246,0.07),transparent_30%)] p-6">{children}</section>
