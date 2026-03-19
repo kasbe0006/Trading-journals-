@@ -12,6 +12,7 @@
     "verify": "npm run lint && npm run build"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

@@ -1,7 +1,7 @@
 const authEnabled = process.env.AUTH_ENABLED === "true";
 
 const requiredVars = [
-  "MONGODB_URI",
+  "POSTGRES_URL",
   ...(authEnabled ? (["JWT_SECRET"] as const) : ([] as const)),
 ] as const;
 
@@ -12,7 +12,7 @@ for (const key of requiredVars) {
 }
 
 export const env = {
-  MONGODB_URI: process.env.MONGODB_URI ?? "",
+  POSTGRES_URL: process.env.POSTGRES_URL ?? process.env.DATABASE_URL ?? "",
   JWT_SECRET: process.env.JWT_SECRET ?? "",
   AUTH_ENABLED: process.env.AUTH_ENABLED === "true",
   APP_DEMO_MODE: process.env.APP_DEMO_MODE !== "false",

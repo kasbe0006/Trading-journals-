@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import Papa from "papaparse";
 import { handleApiError, ok } from "@/lib/api-response";
 import { requireApiUser } from "@/lib/api-auth";
-import { connectDB } from "@/lib/db";
+import { insertTradesBulk } from "@/lib/db";
 import { env } from "@/lib/env";
 import { checkRateLimit, getRateLimitKey } from "@/lib/rate-limit";
 import { calculateRrRatio, calculateTradeOutcome } from "@/lib/trade-math";
-import { Trade } from "@/models/Trade";
 
 export const runtime = "nodejs";
 
@@ -31,13 +30,11 @@ export async function POST(req: NextRequest) {
     const csv = await file.text();
     const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
 
-    await connectDB();
-
     const docs = parsed.data.map((row) => {
       const entry = Number(row.entry ?? 0);
       const stopLoss = Number(row.stopLoss ?? 0);
       const takeProfit = Number(row.takeProfit ?? 0);
-      const direction = row.direction === "SHORT" ? "SHORT" : "LONG";
+      const direction: "LONG" | "SHORT" = row.direction === "SHORT" ? "SHORT" : "LONG";
       const exitPrice = Number(row.exitPrice ?? row.exit ?? row.entry ?? 0);
 
       const rrRatio = calculateRrRatio(entry, stopLoss, takeProfit);
@@ -61,7 +58,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (docs.length > 0) {
-      await Trade.insertMany(docs);
+      await insertTradesBulk(docs);
     }
 
     return ok({ imported: docs.length });

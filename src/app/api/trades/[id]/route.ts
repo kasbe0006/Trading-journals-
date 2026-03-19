@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { handleApiError, ok } from "@/lib/api-response";
 import { requireApiUser } from "@/lib/api-auth";
-import { connectDB } from "@/lib/db";
+import { deleteTrade, findTradeById, updateTrade } from "@/lib/db";
 import { calculateRrRatio, calculateTradeOutcome } from "@/lib/trade-math";
-import { Trade } from "@/models/Trade";
 
 const tradeUpdateSchema = z.object({
   symbol: z.string().min(1).optional(),
@@ -32,9 +31,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     const authResult = requireApiUser(req);
     if ("error" in authResult) return NextResponse.json({ error: authResult.error }, { status: authResult.status });
 
-    await connectDB();
     const { id } = await params;
-    const trade = await Trade.findOne({ _id: id, userId: authResult.auth.userId }).lean();
+    const trade = await findTradeById(authResult.auth.userId, id);
     if (!trade) return NextResponse.json({ error: "Trade not found" }, { status: 404 });
 
     return ok({ trade });
@@ -48,13 +46,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const authResult = requireApiUser(req);
     if ("error" in authResult) return NextResponse.json({ error: authResult.error }, { status: authResult.status });
 
-    await connectDB();
     const body = await req.json();
     const parsed = tradeUpdateSchema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
     const { id } = await params;
-    const existingTrade = await Trade.findOne({ _id: id, userId: authResult.auth.userId });
+    const existingTrade = await findTradeById(authResult.auth.userId, id);
     if (!existingTrade) return NextResponse.json({ error: "Trade not found" }, { status: 404 });
 
     const nextEntry = parsed.data.entry ?? existingTrade.entry;
@@ -66,17 +63,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const rrRatio = calculateRrRatio(nextEntry, nextStopLoss, nextTakeProfit);
     const { pnl, result } = calculateTradeOutcome(nextEntry, nextExitPrice, nextDirection);
 
-    const trade = await Trade.findOneAndUpdate(
-      { _id: id, userId: authResult.auth.userId },
-      {
-        ...parsed.data,
-        symbol: parsed.data.symbol ? parsed.data.symbol.trim().toUpperCase() : (existingTrade.symbol || "NIFTY"),
-        rrRatio,
-        pnl,
-        result,
-      },
-      { new: true }
-    );
+    const trade = await updateTrade(authResult.auth.userId, id, {
+      ...parsed.data,
+      symbol: parsed.data.symbol ? parsed.data.symbol.trim().toUpperCase() : existingTrade.symbol || "NIFTY",
+      rrRatio,
+      pnl,
+      result,
+    });
 
     if (!trade) return NextResponse.json({ error: "Trade not found" }, { status: 404 });
     return ok({ trade });
@@ -90,9 +83,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const authResult = requireApiUser(req);
     if ("error" in authResult) return NextResponse.json({ error: authResult.error }, { status: authResult.status });
 
-    await connectDB();
     const { id } = await params;
-    const deleted = await Trade.findOneAndDelete({ _id: id, userId: authResult.auth.userId });
+    const deleted = await deleteTrade(authResult.auth.userId, id);
     if (!deleted) return NextResponse.json({ error: "Trade not found" }, { status: 404 });
 
     return ok({ ok: true });

@@ -21,7 +21,14 @@ export function handleApiError(error: unknown, fallbackMessage = "Request failed
   const message = error instanceof Error ? error.message : fallbackMessage;
   const normalized = message.toLowerCase();
 
-  if (normalized.includes("econnrefused") || normalized.includes("serverselection") || normalized.includes("mongodb")) {
+  if (
+    normalized.includes("econnrefused") ||
+    normalized.includes("serverselection") ||
+    normalized.includes("mongodb") ||
+    normalized.includes("postgres") ||
+    normalized.includes("neon") ||
+    normalized.includes("connection terminated")
+  ) {
     logApiError({ route, error, code: "DB_UNAVAILABLE" });
     return fail("Database is unavailable. Please try again shortly.", 503, "DB_UNAVAILABLE");
   }

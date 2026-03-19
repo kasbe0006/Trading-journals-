@@ -2,11 +2,10 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AUTH_COOKIE, signToken } from "@/lib/auth";
-import { connectDB } from "@/lib/db";
+import { findUserByIdentifier } from "@/lib/db";
 import { env } from "@/lib/env";
 import { fail } from "@/lib/api-response";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { User } from "@/models/User";
 
 const schema = z.object({
   identifier: z.string().min(2),
@@ -26,26 +25,18 @@ export async function POST(request: Request) {
       return fail("Too many login attempts. Please try again later.", 429, "RATE_LIMITED");
     }
 
-    await connectDB();
     const body = await request.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
     const identifier = parsed.data.identifier.trim();
-    const lowerIdentifier = identifier.toLowerCase();
-
-    const user = await User.findOne({
-      $or: [
-        { email: lowerIdentifier },
-        { name: { $regex: `^${identifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" } },
-      ],
-    });
+    const user = await findUserByIdentifier(identifier);
     if (!user) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 
     const isValid = await bcrypt.compare(parsed.data.password, user.password);
     if (!isValid) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 
-    const token = signToken({ userId: user._id.toString(), email: user.email });
+    const token = signToken({ userId: user._id, email: user.email });
     const response = NextResponse.json({ id: user._id, email: user.email, name: user.name });
     response.cookies.set(AUTH_COOKIE, token, {
       httpOnly: true,

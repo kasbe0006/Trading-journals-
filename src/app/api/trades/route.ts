@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { handleApiError, ok } from "@/lib/api-response";
 import { requireApiUser } from "@/lib/api-auth";
-import { connectDB } from "@/lib/db";
+import { createTrade, listTradesByUser } from "@/lib/db";
 import { checkRateLimit, getRateLimitKey } from "@/lib/rate-limit";
 import { calculateRrRatio, calculateTradeOutcome } from "@/lib/trade-math";
-import { Trade } from "@/models/Trade";
 
 const tradeSchema = z.object({
   symbol: z.string().min(1),
@@ -32,8 +31,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    await connectDB();
-    const trades = await Trade.find({ userId: authResult.auth.userId }).sort({ tradedAt: -1, createdAt: -1 }).lean();
+    const trades = await listTradesByUser(authResult.auth.userId);
     return ok({ trades });
   } catch (error) {
     return handleApiError(error, "Failed to fetch trades", "api/trades.get");
@@ -55,7 +53,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    await connectDB();
     const body = await req.json();
     const parsed = tradeSchema.safeParse(body);
     if (!parsed.success) {
@@ -65,9 +62,8 @@ export async function POST(req: NextRequest) {
     const rrRatio = calculateRrRatio(parsed.data.entry, parsed.data.stopLoss, parsed.data.takeProfit);
     const { pnl, result } = calculateTradeOutcome(parsed.data.entry, parsed.data.exitPrice, parsed.data.direction);
 
-    const trade = await Trade.create({
+    const trade = await createTrade({
       ...parsed.data,
-      symbol: parsed.data.symbol.trim().toUpperCase(),
       tradedAt: parsed.data.tradedAt ?? new Date(),
       rrRatio,
       pnl,

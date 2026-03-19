@@ -1,6 +1,14 @@
-import { ITrade } from "@/models/Trade";
+type AnalyticsTrade = {
+  result: "win" | "loss" | "breakeven";
+  pnl: number;
+  rrRatio: number;
+  strategyTag?: string;
+  symbol?: string;
+  tradedAt?: Date | string;
+  createdAt?: Date | string;
+};
 
-export function computeTradeAnalytics(trades: ITrade[]) {
+export function computeTradeAnalytics(trades: AnalyticsTrade[]) {
   const totalTrades = trades.length;
   const wins = trades.filter((trade) => trade.result === "win").length;
   const losses = trades.filter((trade) => trade.result === "loss").length;
@@ -25,8 +33,8 @@ export function computeTradeAnalytics(trades: ITrade[]) {
   let equity = 0;
   let maxDrawdown = 0;
 
-  const getTradeTimestamp = (trade: ITrade) => {
-    const value = (trade.tradedAt as Date | string | undefined) ?? trade.createdAt;
+  const getTradeTimestamp = (trade: AnalyticsTrade) => {
+    const value = (trade.tradedAt as Date | string | undefined) ?? trade.createdAt ?? new Date(0);
     return new Date(value);
   };
 
