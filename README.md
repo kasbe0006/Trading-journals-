@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Trading Journal Pro
 
-## Getting Started
+Production-ready personal trading journal with analytics and performance tracking.
 
-First, run the development server:
+## Tech Stack
+
+- Next.js (App Router, TypeScript)
+- Tailwind CSS (dark premium UI)
+- MongoDB + Mongoose
+- JWT auth (HTTP-only cookies)
+- Recharts analytics
+
+## Core Features
+
+- Upload TradingView screenshots and auto-extract:
+	- Entry
+	- Stop Loss
+	- Take Profit
+	- Direction (`LONG` / `SHORT`)
+	- Risk/Reward ratio
+- Trade journal CRUD (`/journal`, `/trade/[id]`)
+- Dashboard (`/dashboard`) with equity curve and key performance metrics
+- Analytics (`/analytics`) with strategy, RR, drawdown, and day breakdown
+- Settings page (`/settings`) with local preferences (risk defaults, timezone, currency)
+- CSV trade import
+- Journal search/filter/sort controls for faster review
+- Emotion tracking, plan adherence, risk tracking, replay notes
+- API health checks + DB offline banner for graceful degraded mode
+
+## Project Structure
+
+- `src/app/(app)` – authenticated pages (`dashboard`, `journal`, `trade/[id]`, `analytics`, `ai-chat`)
+- `src/app/api` – auth, trades, analytics, AI routes
+- `src/models` – `User`, `Trade`
+- `src/lib` – DB, auth, OCR, AI, analytics, storage helpers
+- `src/components` – UI, charts, dashboard, layout components
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set at minimum:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `MONGODB_URI`
+- `JWT_SECRET`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Feature flags:
 
-## Learn More
+- `AUTH_ENABLED` (`true` to require login/signup, `false` for direct demo access)
+- `APP_DEMO_MODE` (`true` by default; used for UX messaging and guest-friendly flow)
 
-To learn more about Next.js, take a look at the following resources:
+Rate limiting:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `RATE_LIMIT_ENABLED` (`true` by default)
+- `RATE_LIMIT_WINDOW_MS` (default `60000`)
+- `RATE_LIMIT_MAX_REQUESTS` (default `120`)
+- `RATE_LIMIT_AUTH_MAX_REQUESTS` (default `20`)
+- `RATE_LIMIT_UPLOAD_MAX_REQUESTS` (default `12`)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Run Locally
 
-## Deploy on Vercel
+```bash
+npm install
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `http://localhost:3000`
+
+## Quality Checks
+
+```bash
+npm run lint
+npm run build
+```
+
+## API Endpoints
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `GET /api/health`
+- `GET/POST /api/trades`
+- `GET/PATCH/DELETE /api/trades/:id`
+- `POST /api/trades/import-csv`
+- `GET /api/analytics/summary`
+
+## Notes
+
+- Image files are stored locally in `public/uploads`.
+- Reference folders `arthveda-main` and `journalit-main` are intentionally excluded from lint/build checks.
+- In demo mode (`AUTH_ENABLED=false`), APIs run under a guest identity (`guest-user`) for local prototyping.
+- API errors and rate-limit events are logged to server console for lightweight monitoring.

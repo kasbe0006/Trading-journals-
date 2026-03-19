@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #070b14;
+  --foreground: #e2e8f0;
+  --surface-0: #070b14;
+  --surface-1: #0c1322;
+  --surface-2: #101a2e;
+  --surface-3: #14213a;
+  --muted: #94a3b8;
+  --border-soft: #243247;
+  --accent: #3b82f6;
+  --accent-soft: rgba(59, 130, 246, 0.15);
 }
 
 @theme inline {
@@ -12,15 +20,28 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+* {
+  border-color: var(--border-soft);
+}
+
+.surface-card {
+  background: linear-gradient(180deg, rgba(20, 33, 58, 0.72) 0%, rgba(16, 26, 46, 0.78) 100%);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 8px 30px rgba(2, 10, 25, 0.45);
+}
+
+.surface-elevated {
+  background: linear-gradient(180deg, rgba(26, 40, 67, 0.72) 0%, rgba(17, 27, 47, 0.82) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 10px 32px rgba(9, 20, 40, 0.58);
+}
+
+.kpi-glow {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 28px rgba(7, 14, 28, 0.42);
 }
