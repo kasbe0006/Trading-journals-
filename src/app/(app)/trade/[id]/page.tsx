@@ -8,7 +8,10 @@ import { fetchJson } from "@/lib/client-fetch";
 
 type Trade = {
   _id: string;
+  symbol: string;
+  tradedAt: string;
   entry: number;
+  exitPrice: number;
   stopLoss: number;
   takeProfit: number;
   direction: "LONG" | "SHORT";
@@ -46,7 +49,7 @@ export default function TradeDetailPage() {
     <div className="grid gap-6">
       <div>
         <h2 className="text-2xl font-semibold">Trade Details</h2>
-        <p className="text-sm text-slate-400">{new Date(trade.createdAt).toLocaleString()}</p>
+        <p className="text-sm text-slate-400">{new Date(trade.tradedAt || trade.createdAt).toLocaleString()}</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -56,7 +59,9 @@ export default function TradeDetailPage() {
           </CardHeader>
           <CardContent className="grid gap-2 text-sm">
             <p>Direction: {trade.direction}</p>
+            <p>Symbol: {trade.symbol || "-"}</p>
             <p>Entry: {trade.entry}</p>
+            <p>Exit Price: {trade.exitPrice}</p>
             <p>Stop Loss: {trade.stopLoss}</p>
             <p>Take Profit: {trade.takeProfit}</p>
             <p>RR Ratio: {trade.rrRatio}</p>

@@ -4,16 +4,17 @@ import { handleApiError, ok } from "@/lib/api-response";
 import { requireApiUser } from "@/lib/api-auth";
 import { connectDB } from "@/lib/db";
 import { checkRateLimit, getRateLimitKey } from "@/lib/rate-limit";
+import { calculateRrRatio, calculateTradeOutcome } from "@/lib/trade-math";
 import { Trade } from "@/models/Trade";
 
 const tradeSchema = z.object({
+  symbol: z.string().min(1),
+  tradedAt: z.coerce.date().optional(),
   entry: z.coerce.number(),
+  exitPrice: z.coerce.number(),
   stopLoss: z.coerce.number(),
   takeProfit: z.coerce.number(),
   direction: z.enum(["LONG", "SHORT"]),
-  rrRatio: z.coerce.number(),
-  result: z.enum(["win", "loss", "breakeven"]).default("breakeven"),
-  pnl: z.coerce.number().default(0),
   strategyTag: z.string().optional().default(""),
   notes: z.string().optional().default(""),
   imageUrl: z.string().optional().default(""),
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
     }
 
     await connectDB();
-    const trades = await Trade.find({ userId: authResult.auth.userId }).sort({ createdAt: -1 }).lean();
+    const trades = await Trade.find({ userId: authResult.auth.userId }).sort({ tradedAt: -1, createdAt: -1 }).lean();
     return ok({ trades });
   } catch (error) {
     return handleApiError(error, "Failed to fetch trades", "api/trades.get");
@@ -61,7 +62,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid trade payload", issues: parsed.error.flatten() }, { status: 400 });
     }
 
-    const trade = await Trade.create({ ...parsed.data, userId: authResult.auth.userId });
+    const rrRatio = calculateRrRatio(parsed.data.entry, parsed.data.stopLoss, parsed.data.takeProfit);
+    const { pnl, result } = calculateTradeOutcome(parsed.data.entry, parsed.data.exitPrice, parsed.data.direction);
+
+    const trade = await Trade.create({
+      ...parsed.data,
+      symbol: parsed.data.symbol.trim().toUpperCase(),
+      tradedAt: parsed.data.tradedAt ?? new Date(),
+      rrRatio,
+      pnl,
+      result,
+      userId: authResult.auth.userId,
+    });
     return ok({ trade }, 201);
   } catch (error) {
     return handleApiError(error, "Failed to create trade", "api/trades.post");

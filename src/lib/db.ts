@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import { env } from "@/lib/env";
 import { Trade } from "@/models/Trade";
 import { User } from "@/models/User";
@@ -8,10 +9,16 @@ declare global {
     conn: typeof mongoose | null;
     promise: Promise<typeof mongoose> | null;
     indexesPromise: Promise<void> | null;
+    defaultAdminPromise: Promise<void> | null;
   };
 }
 
-const cached = global.mongooseConnection || { conn: null, promise: null, indexesPromise: null };
+const cached = global.mongooseConnection || {
+  conn: null,
+  promise: null,
+  indexesPromise: null,
+  defaultAdminPromise: null,
+};
 
 if (!global.mongooseConnection) {
   global.mongooseConnection = cached;
@@ -41,6 +48,14 @@ export async function connectDB() {
   }
 
   await cached.indexesPromise;
+
+  if (env.AUTH_ENABLED && env.DEFAULT_ADMIN_ENABLED) {
+    if (!cached.defaultAdminPromise) {
+      cached.defaultAdminPromise = ensureDefaultAdminUser();
+    }
+    await cached.defaultAdminPromise;
+  }
+
   return cached.conn;
 }
 
@@ -49,5 +64,34 @@ async function initializeIndexes() {
     await Promise.all([User.createIndexes(), Trade.createIndexes()]);
   } catch (error) {
     console.error("[db] Failed to initialize MongoDB indexes", error);
+  }
+}
+
+async function ensureDefaultAdminUser() {
+  try {
+    const username = env.DEFAULT_ADMIN_USERNAME.trim();
+    const email = env.DEFAULT_ADMIN_EMAIL.trim().toLowerCase();
+    const password = env.DEFAULT_ADMIN_PASSWORD;
+
+    if (!username || !email || !password || password.length < 6) {
+      console.warn("[db] Default admin skipped due to invalid DEFAULT_ADMIN_* values");
+      return;
+    }
+
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return;
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    await User.create({
+      name: username,
+      email,
+      password: hash,
+    });
+
+    console.log(`[db] Default admin ensured for ${email}`);
+  } catch (error) {
+    console.error("[db] Failed to ensure default admin user", error);
   }
 }

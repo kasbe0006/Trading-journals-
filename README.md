@@ -69,6 +69,16 @@ The project uses these keys from `.env.local`:
 - Demo mode (no login required): `AUTH_ENABLED=false`
 - Real auth mode (login/signup enabled): `AUTH_ENABLED=true`
 
+### Default Login (Auto-created)
+
+When `AUTH_ENABLED=true` and `DEFAULT_ADMIN_ENABLED=true`, the app auto-creates a default admin user on first DB connection:
+
+- Username: `prathamesh kasbe`
+- Email: `prathamesh@local.dev`
+- Password: `Unnatikasbe06`
+
+You can sign in using **username or email**.
+
 ## Database Setup Notes
 
 If local MongoDB is not running, `npm run db:check` will fail with `ECONNREFUSED`.
@@ -94,6 +104,24 @@ npm run db:check
 npm run dev
 npm run verify
 ```
+
+## Hosting (Vercel + MongoDB Atlas)
+
+1. Push code to GitHub (already done).
+2. Create MongoDB Atlas cluster and copy connection string.
+3. In Vercel, import your GitHub repo and set env vars:
+
+- `MONGODB_URI` (Atlas URI)
+- `JWT_SECRET` (strong random string)
+- `AUTH_ENABLED=true`
+- `DEFAULT_ADMIN_ENABLED=true`
+- `DEFAULT_ADMIN_USERNAME=prathamesh kasbe`
+- `DEFAULT_ADMIN_EMAIL=prathamesh@local.dev`
+- `DEFAULT_ADMIN_PASSWORD=Unnatikasbe06`
+
+4. Deploy and open your site.
+
+After first successful login, update `DEFAULT_ADMIN_PASSWORD` to a new strong password.
 
 ## Quality Checks
 

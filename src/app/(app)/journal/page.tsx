@@ -5,11 +5,21 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchJson } from "@/lib/client-fetch";
+import { calculateRrRatio, calculateTradeOutcome } from "@/lib/trade-math";
 import { defaultUserSettings, loadUserSettings, UserSettings } from "@/lib/user-settings";
+
+const getLocalDateTimeInputValue = () => {
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+};
 
 type Trade = {
   _id: string;
+  symbol: string;
+  tradedAt: string;
   entry: number;
+  exitPrice: number;
   stopLoss: number;
   takeProfit: number;
   direction: "LONG" | "SHORT";
@@ -28,13 +38,14 @@ type Trade = {
 };
 
 type TradeForm = {
+  symbol: string;
+  tradedAt: string;
   entry: string;
+  exitPrice: string;
   stopLoss: string;
   takeProfit: string;
   direction: "LONG" | "SHORT";
   rrRatio: string;
-  result: "win" | "loss" | "breakeven";
-  pnl: string;
   strategyTag: string;
   notes: string;
   imageUrl: string;
@@ -46,13 +57,14 @@ type TradeForm = {
 };
 
 const getInitialForm = (settings: UserSettings): TradeForm => ({
+  symbol: "NIFTY",
+  tradedAt: getLocalDateTimeInputValue(),
   entry: "",
+  exitPrice: "",
   stopLoss: "",
   takeProfit: "",
   direction: "LONG",
   rrRatio: "",
-  result: "breakeven",
-  pnl: "0",
   strategyTag: "",
   notes: "",
   imageUrl: "",
@@ -104,20 +116,38 @@ export default function JournalPage() {
     const sl = Number(form.stopLoss);
     const tp = Number(form.takeProfit);
     if (!entry || !sl || !tp) return "";
-    const risk = Math.abs(entry - sl);
-    const reward = Math.abs(tp - entry);
-    return risk > 0 ? (reward / risk).toFixed(2) : "";
+    const rr = calculateRrRatio(entry, sl, tp);
+    return rr > 0 ? rr.toFixed(2) : "";
   }, [form.entry, form.stopLoss, form.takeProfit]);
+
+  const computedOutcome = useMemo(() => {
+    const entry = Number(form.entry);
+    const exitPrice = Number(form.exitPrice);
+    if (!entry || !exitPrice) {
+      return { result: "breakeven" as const, pnl: "0.00" };
+    }
+    const { result, pnl } = calculateTradeOutcome(entry, exitPrice, form.direction);
+    return { result, pnl: pnl.toFixed(2) };
+  }, [form.direction, form.entry, form.exitPrice]);
 
   const editComputedRr = useMemo(() => {
     const entry = Number(editForm.entry);
     const sl = Number(editForm.stopLoss);
     const tp = Number(editForm.takeProfit);
     if (!entry || !sl || !tp) return "";
-    const risk = Math.abs(entry - sl);
-    const reward = Math.abs(tp - entry);
-    return risk > 0 ? (reward / risk).toFixed(2) : "";
+    const rr = calculateRrRatio(entry, sl, tp);
+    return rr > 0 ? rr.toFixed(2) : "";
   }, [editForm.entry, editForm.stopLoss, editForm.takeProfit]);
+
+  const editComputedOutcome = useMemo(() => {
+    const entry = Number(editForm.entry);
+    const exitPrice = Number(editForm.exitPrice);
+    if (!entry || !exitPrice) {
+      return { result: "breakeven" as const, pnl: "0.00" };
+    }
+    const { result, pnl } = calculateTradeOutcome(entry, exitPrice, editForm.direction);
+    return { result, pnl: pnl.toFixed(2) };
+  }, [editForm.direction, editForm.entry, editForm.exitPrice]);
 
   const filteredTrades = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -125,6 +155,7 @@ export default function JournalPage() {
     const next = trades.filter((trade) => {
       const matchesQuery =
         !normalizedQuery ||
+        trade.symbol.toLowerCase().includes(normalizedQuery) ||
         trade.strategyTag.toLowerCase().includes(normalizedQuery) ||
         trade.notes.toLowerCase().includes(normalizedQuery) ||
         trade.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery));
@@ -136,8 +167,8 @@ export default function JournalPage() {
     });
 
     return next.sort((left, right) => {
-      if (sortBy === "newest") return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
-      if (sortBy === "oldest") return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+      if (sortBy === "newest") return new Date(right.tradedAt || right.createdAt).getTime() - new Date(left.tradedAt || left.createdAt).getTime();
+      if (sortBy === "oldest") return new Date(left.tradedAt || left.createdAt).getTime() - new Date(right.tradedAt || right.createdAt).getTime();
       if (sortBy === "bestPnl") return right.pnl - left.pnl;
       return left.pnl - right.pnl;
     });
@@ -157,11 +188,13 @@ export default function JournalPage() {
 
     const payload = {
       ...form,
+      symbol: form.symbol,
+      tradedAt: form.tradedAt,
       rrRatio: Number(form.rrRatio || computedRr || 0),
       entry: Number(form.entry),
+      exitPrice: Number(form.exitPrice),
       stopLoss: Number(form.stopLoss),
       takeProfit: Number(form.takeProfit),
-      pnl: Number(form.pnl),
       riskPercent: Number(form.riskPercent),
       tags: form.tags.split(",").map((item) => item.trim()).filter(Boolean),
     };
@@ -192,13 +225,14 @@ export default function JournalPage() {
   const openEdit = (trade: Trade) => {
     setEditingTradeId(trade._id);
     setEditForm({
+      symbol: trade.symbol || "NIFTY",
+      tradedAt: new Date(trade.tradedAt || trade.createdAt).toISOString().slice(0, 16),
       entry: String(trade.entry),
+      exitPrice: String(trade.exitPrice ?? trade.entry),
       stopLoss: String(trade.stopLoss),
       takeProfit: String(trade.takeProfit),
       direction: trade.direction,
       rrRatio: String(trade.rrRatio),
-      result: trade.result,
-      pnl: String(trade.pnl),
       strategyTag: trade.strategyTag || "",
       notes: trade.notes || "",
       imageUrl: trade.imageUrl || "",
@@ -221,11 +255,13 @@ export default function JournalPage() {
     setLoading(true);
     const payload = {
       ...editForm,
+      symbol: editForm.symbol,
+      tradedAt: editForm.tradedAt,
       rrRatio: Number(editForm.rrRatio || editComputedRr || 0),
       entry: Number(editForm.entry),
+      exitPrice: Number(editForm.exitPrice),
       stopLoss: Number(editForm.stopLoss),
       takeProfit: Number(editForm.takeProfit),
-      pnl: Number(editForm.pnl),
       riskPercent: Number(editForm.riskPercent),
       tags: editForm.tags.split(",").map((item) => item.trim()).filter(Boolean),
     };
@@ -280,9 +316,10 @@ export default function JournalPage() {
   };
 
   const exportFilteredTrades = () => {
-    const header = ["date", "direction", "rrRatio", "result", "pnl", "strategyTag", "notes", "tags"];
+    const header = ["date", "symbol", "direction", "rrRatio", "result", "pnl", "strategyTag", "notes", "tags"];
     const rows = filteredTrades.map((trade) => [
-      new Date(trade.createdAt).toISOString(),
+      new Date(trade.tradedAt || trade.createdAt).toISOString(),
+      trade.symbol,
       trade.direction,
       String(trade.rrRatio),
       trade.result,
@@ -305,11 +342,18 @@ export default function JournalPage() {
     URL.revokeObjectURL(url);
   };
 
-  const formatDate = (value: string) => {
+  const formatDateTime = (value: string) => {
     try {
-      return new Intl.DateTimeFormat(undefined, { timeZone: settings.timezone }).format(new Date(value));
+      return new Intl.DateTimeFormat(undefined, {
+        timeZone: settings.timezone,
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(value));
     } catch {
-      return new Date(value).toLocaleDateString();
+      return new Date(value).toLocaleString();
     }
   };
 
@@ -335,7 +379,10 @@ export default function JournalPage() {
         <CardContent>
           <form onSubmit={submitTrade} className="grid gap-3">
             <div className="grid gap-3 md:grid-cols-4">
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Symbol (e.g. NIFTY, BANKNIFTY)" value={form.symbol} onChange={(event) => updateField("symbol", event.target.value.toUpperCase())} required />
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" type="datetime-local" value={form.tradedAt} onChange={(event) => updateField("tradedAt", event.target.value)} required />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Entry" value={form.entry} onChange={(event) => updateField("entry", event.target.value)} required />
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Exit Price" value={form.exitPrice} onChange={(event) => updateField("exitPrice", event.target.value)} required />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Stop Loss" value={form.stopLoss} onChange={(event) => updateField("stopLoss", event.target.value)} required />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Take Profit" value={form.takeProfit} onChange={(event) => updateField("takeProfit", event.target.value)} required />
               <select className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" value={form.direction} onChange={(event) => updateField("direction", event.target.value)}>
@@ -345,13 +392,9 @@ export default function JournalPage() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-4">
-              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="RR Ratio" value={form.rrRatio || computedRr} onChange={(event) => updateField("rrRatio", event.target.value)} />
-              <select className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" value={form.result} onChange={(event) => updateField("result", event.target.value)}>
-                <option value="win">Win</option>
-                <option value="loss">Loss</option>
-                <option value="breakeven">Breakeven</option>
-              </select>
-              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="P/L" value={form.pnl} onChange={(event) => updateField("pnl", event.target.value)} />
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="RR Ratio (auto)" value={form.rrRatio || computedRr} onChange={(event) => updateField("rrRatio", event.target.value)} />
+              <input className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-slate-200" placeholder="Result (auto)" value={computedOutcome.result} readOnly />
+              <input className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-slate-200" placeholder="P/L (auto)" value={computedOutcome.pnl} readOnly />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Risk %" value={form.riskPercent} onChange={(event) => updateField("riskPercent", event.target.value)} />
             </div>
 
@@ -407,7 +450,10 @@ export default function JournalPage() {
           </CardHeader>
           <CardContent className="grid gap-3">
             <div className="grid gap-3 md:grid-cols-4">
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Symbol (e.g. NIFTY, BANKNIFTY)" value={editForm.symbol} onChange={(event) => updateEditField("symbol", event.target.value.toUpperCase())} />
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" type="datetime-local" value={editForm.tradedAt} onChange={(event) => updateEditField("tradedAt", event.target.value)} />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Entry" value={editForm.entry} onChange={(event) => updateEditField("entry", event.target.value)} />
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Exit Price" value={editForm.exitPrice} onChange={(event) => updateEditField("exitPrice", event.target.value)} />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Stop Loss" value={editForm.stopLoss} onChange={(event) => updateEditField("stopLoss", event.target.value)} />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Take Profit" value={editForm.takeProfit} onChange={(event) => updateEditField("takeProfit", event.target.value)} />
               <select className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" value={editForm.direction} onChange={(event) => updateEditField("direction", event.target.value as TradeForm["direction"])}>
@@ -417,13 +463,9 @@ export default function JournalPage() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-4">
-              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="RR Ratio" value={editForm.rrRatio || editComputedRr} onChange={(event) => updateEditField("rrRatio", event.target.value)} />
-              <select className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" value={editForm.result} onChange={(event) => updateEditField("result", event.target.value as TradeForm["result"])}>
-                <option value="win">Win</option>
-                <option value="loss">Loss</option>
-                <option value="breakeven">Breakeven</option>
-              </select>
-              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="P/L" value={editForm.pnl} onChange={(event) => updateEditField("pnl", event.target.value)} />
+              <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="RR Ratio (auto)" value={editForm.rrRatio || editComputedRr} onChange={(event) => updateEditField("rrRatio", event.target.value)} />
+              <input className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-slate-200" placeholder="Result (auto)" value={editComputedOutcome.result} readOnly />
+              <input className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-slate-200" placeholder="P/L (auto)" value={editComputedOutcome.pnl} readOnly />
               <input className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="Risk %" value={editForm.riskPercent} onChange={(event) => updateEditField("riskPercent", event.target.value)} />
             </div>
 
@@ -475,7 +517,7 @@ export default function JournalPage() {
           <div className="mb-4 grid gap-3 md:grid-cols-4">
             <input
               className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm"
-              placeholder="Search strategy, notes, tags"
+              placeholder="Search symbol, strategy, notes, tags"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -519,6 +561,7 @@ export default function JournalPage() {
                 <tr>
                   <th className="pb-2">Select</th>
                   <th className="pb-2">Date</th>
+                  <th className="pb-2">Symbol</th>
                   <th className="pb-2">Direction</th>
                   <th className="pb-2">RR</th>
                   <th className="pb-2">Result</th>
@@ -537,7 +580,8 @@ export default function JournalPage() {
                         onChange={() => toggleSelectedTrade(trade._id)}
                       />
                     </td>
-                    <td className={settings.compactTables ? "py-1" : "py-2"}>{formatDate(trade.createdAt)}</td>
+                    <td className={settings.compactTables ? "py-1" : "py-2"}>{formatDateTime(trade.tradedAt || trade.createdAt)}</td>
+                    <td className={settings.compactTables ? "py-1" : "py-2"}>{trade.symbol || "-"}</td>
                     <td className={settings.compactTables ? "py-1" : "py-2"}>{trade.direction}</td>
                     <td className={settings.compactTables ? "py-1" : "py-2"}>{trade.rrRatio}</td>
                     <td className={settings.compactTables ? "py-1" : "py-2"}>{trade.result}</td>

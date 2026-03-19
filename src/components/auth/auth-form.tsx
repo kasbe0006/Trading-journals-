@@ -5,19 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type AuthFormProps = {
-  mode: "login" | "register";
-};
-
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const isRegister = mode === "register";
 
   const parseSafeJson = async (response: Response) => {
     const raw = await response.text();
@@ -48,10 +41,10 @@ export function AuthForm({ mode }: AuthFormProps) {
     setLoading(true);
 
     try {
-      const response = await fetchWithTimeout(`/api/auth/${mode}`, {
+      const response = await fetchWithTimeout("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
 
       const result = await parseSafeJson(response);
@@ -83,25 +76,16 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>{isRegister ? "Create your account" : "Welcome back"}</CardTitle>
+        <CardTitle>Welcome back</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="grid gap-3">
-          {isRegister && (
-            <input
-              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-              placeholder="Full name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
-            />
-          )}
           <input
             className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            placeholder="Username or Email"
+            type="text"
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
             required
           />
           <input
@@ -113,7 +97,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             required
           />
           {error && <p className="text-sm text-rose-400">{error}</p>}
-          <Button disabled={loading}>{loading ? "Please wait..." : isRegister ? "Create account" : "Sign in"}</Button>
+          <Button disabled={loading}>{loading ? "Please wait..." : "Sign in"}</Button>
         </form>
       </CardContent>
     </Card>

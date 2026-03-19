@@ -9,7 +9,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { User } from "@/models/User";
 
 const schema = z.object({
-  email: z.string().email(),
+  identifier: z.string().min(2),
   password: z.string().min(6),
 });
 
@@ -31,7 +31,15 @@ export async function POST(request: Request) {
     const parsed = schema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
-    const user = await User.findOne({ email: parsed.data.email });
+    const identifier = parsed.data.identifier.trim();
+    const lowerIdentifier = identifier.toLowerCase();
+
+    const user = await User.findOne({
+      $or: [
+        { email: lowerIdentifier },
+        { name: { $regex: `^${identifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" } },
+      ],
+    });
     if (!user) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 
     const isValid = await bcrypt.compare(parsed.data.password, user.password);

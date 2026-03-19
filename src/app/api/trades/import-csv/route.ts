@@ -5,6 +5,7 @@ import { requireApiUser } from "@/lib/api-auth";
 import { connectDB } from "@/lib/db";
 import { env } from "@/lib/env";
 import { checkRateLimit, getRateLimitKey } from "@/lib/rate-limit";
+import { calculateRrRatio, calculateTradeOutcome } from "@/lib/trade-math";
 import { Trade } from "@/models/Trade";
 
 export const runtime = "nodejs";
@@ -32,18 +33,32 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const docs = parsed.data.map((row) => ({
-      userId: authResult.auth.userId,
-      entry: Number(row.entry ?? 0),
-      stopLoss: Number(row.stopLoss ?? 0),
-      takeProfit: Number(row.takeProfit ?? 0),
-      direction: row.direction === "SHORT" ? "SHORT" : "LONG",
-      rrRatio: Number(row.rrRatio ?? 0),
-      result: row.result === "win" || row.result === "loss" ? row.result : "breakeven",
-      pnl: Number(row.pnl ?? 0),
-      strategyTag: row.strategyTag ?? "",
-      notes: row.notes ?? "",
-    }));
+    const docs = parsed.data.map((row) => {
+      const entry = Number(row.entry ?? 0);
+      const stopLoss = Number(row.stopLoss ?? 0);
+      const takeProfit = Number(row.takeProfit ?? 0);
+      const direction = row.direction === "SHORT" ? "SHORT" : "LONG";
+      const exitPrice = Number(row.exitPrice ?? row.exit ?? row.entry ?? 0);
+
+      const rrRatio = calculateRrRatio(entry, stopLoss, takeProfit);
+      const { pnl, result } = calculateTradeOutcome(entry, exitPrice, direction);
+
+      return {
+        userId: authResult.auth.userId,
+        symbol: String(row.symbol ?? row.ticker ?? "NIFTY").trim().toUpperCase(),
+        tradedAt: row.tradedAt || row.date ? new Date(row.tradedAt ?? row.date ?? new Date()) : new Date(),
+        entry,
+        exitPrice,
+        stopLoss,
+        takeProfit,
+        direction,
+        rrRatio,
+        result,
+        pnl,
+        strategyTag: row.strategyTag ?? "",
+        notes: row.notes ?? "",
+      };
+    });
 
     if (docs.length > 0) {
       await Trade.insertMany(docs);

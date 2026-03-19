@@ -3,7 +3,10 @@ import mongoose, { InferSchemaType, Model, Schema } from "mongoose";
 const TradeSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    symbol: { type: String, required: true, trim: true, uppercase: true },
+    tradedAt: { type: Date, required: true, default: Date.now },
     entry: { type: Number, required: true },
+    exitPrice: { type: Number, required: true },
     stopLoss: { type: Number, required: true },
     takeProfit: { type: Number, required: true },
     direction: { type: String, enum: ["LONG", "SHORT"], required: true },
