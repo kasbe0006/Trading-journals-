@@ -30,6 +30,21 @@ Or run manually from GitHub Actions tab using `workflow_dispatch`.
 
 After completion, APK is attached in GitHub Releases.
 
+### If release has no APK file
+
+Check these first in GitHub Actions:
+
+1. `EXPO_TOKEN` secret is set
+2. `EXPO_PUBLIC_API_BASE_URL` secret is set to your live web URL
+3. Workflow run for your tag is green (not failed)
+
+If needed, push a new tag to trigger a clean release run:
+
+```bash
+git tag mobile-v1.0.1
+git push origin mobile-v1.0.1
+```
+
 ## 1) Configure API URL
 
 Create `.env` from the example and point it to your deployed website URL:
