@@ -12,9 +12,11 @@ type Trade = {
 
 type HeatApi = {
   render: (element: HTMLElement, options?: Record<string, unknown>) => HeatApi;
+  addDate: (id: string, date: Date, trendType?: string | null, refresh?: boolean) => HeatApi;
   updateDate: (id: string, date: Date, count: number, trendType?: string | null, refresh?: boolean) => HeatApi;
   reset: (id: string, refresh?: boolean) => HeatApi;
   refresh: (id: string) => HeatApi;
+  setYearToHighest: (id: string) => HeatApi;
   destroy: (id: string) => HeatApi;
 };
 
@@ -53,9 +55,7 @@ export function ForexHeatMap() {
   }, [trades]);
 
   useEffect(() => {
-    let isCancelled = false;
-
-    const init = async () => {
+    const init = () => {
       const api = window.$heat;
       const element = containerRef.current;
       if (!api || !element) return;
@@ -79,8 +79,11 @@ export function ForexHeatMap() {
 
       api.reset(HEATMAP_ID, false);
       for (const [day, count] of dateCounts.entries()) {
-        api.updateDate(HEATMAP_ID, new Date(day), count, null, false);
+        for (let index = 0; index < count; index += 1) {
+          api.addDate(HEATMAP_ID, new Date(day), null, false);
+        }
       }
+      api.setYearToHighest(HEATMAP_ID);
       api.refresh(HEATMAP_ID);
       setIsReady(true);
     };
@@ -90,7 +93,6 @@ export function ForexHeatMap() {
     }
 
     return () => {
-      isCancelled = true;
       if (window.$heat) {
         window.$heat.destroy(HEATMAP_ID);
       }
@@ -108,7 +110,6 @@ export function ForexHeatMap() {
           id={HEATMAP_ID}
           ref={containerRef}
           className="min-h-[260px] rounded-lg border border-slate-800 bg-slate-950/40 p-2"
-          data-heat-js="{ 'views': { 'map': { 'showDayNames': true } } }"
         />
         {!isReady && <p className="mt-2 text-xs text-slate-400">Loading heatmap...</p>}
       </CardContent>
