@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('/vendor/heat.js.min.css');
 
 :root {
   --background: #070b14;

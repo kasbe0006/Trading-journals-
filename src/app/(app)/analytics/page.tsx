@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { RRChart } from "@/components/charts/rr-chart";
 import { StrategyChart } from "@/components/charts/strategy-chart";
+import { ForexHeatMap } from "@/components/analytics/forex-heat-map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchJson } from "@/lib/client-fetch";
 
@@ -122,6 +123,8 @@ export default function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <ForexHeatMap />
 
       <Card>
         <CardHeader>
